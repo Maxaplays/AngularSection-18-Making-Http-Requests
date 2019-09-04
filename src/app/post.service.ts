@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
+import {HttpClient, HttpEventType, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Post} from './post.module';
-import {catchError, map} from 'rxjs/operators';
+import {catchError, map, tap} from 'rxjs/operators';
 import {Subject, throwError} from 'rxjs';
 
 @Injectable({providedIn: 'root'})
@@ -17,7 +17,10 @@ export class PostService {
     this.http
       .post(
         'https://ng-compleate-course.firebaseio.com/posts.json',
-        postData
+        postData,
+        {
+          observe: 'response'
+        }
       )
       .subscribe(responseData => {
         console.log(responseData);
@@ -27,7 +30,16 @@ export class PostService {
   }
 
   fetchPosts() {
-    return this.http.get<{ [key: string]: Post}>('https://ng-compleate-course.firebaseio.com/posts.json')
+    let searchParams = new HttpParams();
+    searchParams = searchParams.append('print', 'pretty');
+    searchParams = searchParams.append('custom', 'key');
+    return this.http.get<{ [key: string]: Post}>('https://ng-compleate-course.firebaseio.com/posts.json',
+      {
+        headers: new HttpHeaders({ 'Custom-Header': 'Hello' }),
+        params: searchParams,
+        responseType: 'json'
+      }
+      )
       .pipe(
         map( responseData => {
           const postArray: Post[] = [];
@@ -44,6 +56,22 @@ export class PostService {
   }
 
   onDeletePosts() {
-    return this.http.delete('https://ng-compleate-course.firebaseio.com/posts.json');
+    return this.http.delete('https://ng-compleate-course.firebaseio.com/posts.json', {
+      observe: 'events',
+      responseType: 'text'
+    }
+      )
+        .pipe(
+          tap( event => {
+          console.log(event);
+          if (event.type === HttpEventType.Sent) {
+            // ...
+          }
+          if (event.type === HttpEventType.Response) {
+            console.log(event.body);
+          }
+        }
+      )
+    );
   }
 }
